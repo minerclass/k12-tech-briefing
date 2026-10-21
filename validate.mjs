@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const html=fs.readFileSync(new URL('index.html',import.meta.url),'utf8');
+const data=JSON.parse(html.match(/<script id="guide-data" type="application\/json">([\s\S]*?)<\/script>/)[1]);
+const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
+new vm.Script(scripts[1][1]);
+const ids=new Set(data.sources.map(x=>x.id));
+for(const row of [...data.tracks,...data.updates])for(const id of row.sources)assert(ids.has(id));
+for(const row of [...data.events,...data.tasks])assert(ids.has(row.source));
+assert(!('blogs' in data));assert.equal(data.updates.length,3);assert.equal(data.sources.length,14);
+for(const text of ['blog-drafts.md','Working draft |','data.blogs'])assert(!html.includes(text));
+assert(!/<script[^>]+src=/.test(html));assert(!/\bfetch\s*\(/.test(html));
+console.log(JSON.stringify({publicEdition:true,sources:data.sources.length,shareableUpdates:data.updates.length,privateDrafts:0,javascript:'parsed'}));
